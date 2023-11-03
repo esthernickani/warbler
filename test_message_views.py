@@ -38,6 +38,8 @@ class MessageViewTestCase(TestCase):
 
     def setUp(self):
         """Create test client, add sample data."""
+        db.drop_all()
+        db.create_all()
 
         User.query.delete()
         Message.query.delete()
@@ -50,9 +52,13 @@ class MessageViewTestCase(TestCase):
                                     image_url=None)
 
         db.session.commit()
+    
+    def tearDown(self):
+        """Clean up any fouled transaction"""
+        db.session.rollback()
 
     def test_add_message(self):
-        """Can use add a message?"""
+        """Can user add a message?"""
 
         # Since we need to change the session to mimic logging in,
         # we need to use the changing-session trick:
@@ -64,9 +70,24 @@ class MessageViewTestCase(TestCase):
             # Now, that session setting is saved, so we can have
             # the rest of ours test
 
-            resp = c.post("/messages/new", data={"text": "Hello"})
+            resp = c.post("/messages/new",          follow_redirects = True,
+            data={"text": "Hello"})
 
             # Make sure it redirects
+            self.assertEqual(resp.status_code, 302)
+
+            msg = Message.query.one()
+            self.assertEqual(msg.text, "Hello")
+
+    def test_delete_message(self):
+        """Can a user delete their own message"""
+        with self.client as c:
+            with c.session_transaction as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            
+            c.post("/messages/new", data={"text": "Hello"})
+            resp = c.post("/messages/1/delete")
+
             self.assertEqual(resp.status_code, 302)
 
             msg = Message.query.one()

@@ -30,16 +30,22 @@ db.create_all()
 
 
 class UserModelTestCase(TestCase):
-    """Test views for messages."""
+    """Test views for user."""
 
     def setUp(self):
         """Create test client, add sample data."""
+        db.drop_all()
+        db.create_all()
 
         User.query.delete()
         Message.query.delete()
         Follows.query.delete()
 
         self.client = app.test_client()
+
+    def tearDown(self):
+        """Clean up any fouled transaction"""
+        db.session.rollback()
 
     def test_user_model(self):
         """Does basic model work?"""
@@ -56,3 +62,69 @@ class UserModelTestCase(TestCase):
         # User should have no messages & no followers
         self.assertEqual(len(u.messages), 0)
         self.assertEqual(len(u.followers), 0)
+    
+    def test_repr(self):
+        """Does repr work"""
+        u = User(
+            email="test@test.com",
+            username="testuser",
+            password="HASHED_PASSWORD"
+        )
+
+        db.session.add(u)
+        db.session.commit()
+
+        expectedRepr = "<User #1: testuser, test@test.com>"
+        self.assertEqual(repr(u), expectedRepr)
+
+    def test_follow(self):
+        """Does isfollowing function test when user1 is following user2 and vice versa"""
+        u1 = User(
+            email="test1@test.com",
+            username="testuser1",
+            password="HASHED_PASSWORD"
+        )
+        db.session.add(u1)
+        db.session.commit()
+
+        u2 = User(
+            email="test2@test.com",
+            username="testuser2",
+            password="HASHED_PASSWORD"
+        )
+
+        db.session.add(u2)
+        db.session.commit()
+
+        follow = Follows(
+            user_being_followed_id = 1, 
+            user_following_id = 2)
+
+        db.session.add(follow)
+        db.session.commit()
+
+        self.assertEqual(User.is_following(u1, u2), False)
+        self.assertEqual(User.is_following(u2, u1), True)
+        self.assertEqual(User.is_followed_by(u2, u1), False)
+        self.assertEqual(User.is_followed_by(u1, u2), True)
+  
+    def test_user_create_authenticate(self):
+        """Test if user.create successfully creates a new user and authenticate"""
+        u = User.signup(
+            email="test3@test.com",
+            username="testuser3",
+            password="HASHED_PASSWORD",
+            image_url=""
+        )
+
+        self.assertEqual(
+            User.authenticate(
+            username="testuser3",
+            password="HASHED_PASSWORD"
+        ), u)
+
+        self.assertEqual(
+            User.authenticate(
+            username="testuser2",
+            password="HASHED_PASSWORD"
+        ), False)
