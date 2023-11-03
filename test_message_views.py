@@ -70,25 +70,49 @@ class MessageViewTestCase(TestCase):
             # Now, that session setting is saved, so we can have
             # the rest of ours test
 
-            resp = c.post("/messages/new",          follow_redirects = True,
+            resp = c.post("/messages/new",
             data={"text": "Hello"})
 
             # Make sure it redirects
-            self.assertEqual(resp.status_code, 302)
+            self.assertEqual(resp.status_code, 200)
 
             msg = Message.query.one()
             self.assertEqual(msg.text, "Hello")
 
     def test_delete_message(self):
         """Can a user delete their own message"""
+        message = Message(
+            text= "Hello",
+            user_id = self.testuser.id
+        )
+
+        db.session.add(message)
+        db.session.commit()
+
         with self.client as c:
-            with c.session_transaction as sess:
+            with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.testuser.id
             
-            c.post("/messages/new", data={"text": "Hello"})
-            resp = c.post("/messages/1/delete")
+            resp = c.post(f"/messages/{message.id}/delete")
 
-            self.assertEqual(resp.status_code, 302)
+            msg_count = Message.query.count()
 
-            msg = Message.query.one()
-            self.assertEqual(msg.text, "Hello")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(msg_count, 0)
+    
+    def test_logged_out_add_message(self):
+        """When logged out, are you prohibited from adding an deleting messages"""
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                del sess[CURR_USER_KEY]
+        
+        resp = c.post("/messages/new",
+            data={"text": "Hello"})
+        
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code, 302)
+        assert resp.request.path == '/'
+
+
