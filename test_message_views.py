@@ -74,7 +74,7 @@ class MessageViewTestCase(TestCase):
             data={"text": "Hello"})
 
             # Make sure it redirects
-            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.status_code, 302)
 
             msg = Message.query.one()
             self.assertEqual(msg.text, "Hello")
@@ -97,22 +97,22 @@ class MessageViewTestCase(TestCase):
 
             msg_count = Message.query.count()
 
-            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.status_code, 302)
             self.assertEqual(msg_count, 0)
     
     def test_logged_out_add_message(self):
         """When logged out, are you prohibited from adding an deleting messages"""
         with self.client as c:
             with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.testuser.id
-                del sess[CURR_USER_KEY]
-        
-        resp = c.post("/messages/new",
-            data={"text": "Hello"})
-        
-        html = resp.get_data(as_text=True)
+                sess.clear()
 
-        self.assertEqual(resp.status_code, 302)
-        assert resp.request.path == '/'
+                resp = c.post("/messages/new",
+                    data={"text": "Hello"})
+                
+                
+                html = resp.get_data(as_text=True)
+
+                self.assertEqual(resp.status_code, 302)
+                self.assertEqual(resp.location, '/')
 
 

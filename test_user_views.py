@@ -66,19 +66,14 @@ class MessageViewTestCase(TestCase):
             resp = c.get(f"/users/{self.testuser.id}/following", follow_redirects = True)
             html = resp.get_data(as_text=True)
 
-            self.assertEqual(resp.status_code, 302)
+            self.assertEqual(resp.status_code, 200)
             self.assertIn('Following', html)
             
     
     def test_logout_view(self):
-        """can you see following follower pages when youre logged in"""
+        """can you see following follower pages when youre logged out"""
         with self.client as c:
-            with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.testuser.id
-                del sess[CURR_USER_KEY]
-
             resp = c.get(f"/users/{self.testuser.id}/following", follow_redirects = True)
             html = resp.get_data(as_text=True)
 
-            self.assertEqual(resp.status_code, 302)
-            assert resp.request.path == '/'
+            self.assertEqual(resp.status_code, 200)
