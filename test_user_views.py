@@ -70,7 +70,7 @@ class MessageViewTestCase(TestCase):
             self.assertIn('Following', html)
             
     
-    def test_logout_view(self):
+    def test_following_follower_logout_view(self):
         """can you see following follower pages when youre logged out"""
         with self.client as c:
             resp = c.get(f"/users/{self.testuser.id}/following", follow_redirects = True)
