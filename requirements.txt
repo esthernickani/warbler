@@ -19,7 +19,6 @@ dbus-python==1.2.18
 decorator==4.4.2
 distlib==0.3.7
 distro==1.7.0
-distro-info===1.1build1
 dnspython==2.4.2
 email-validator==2.1.0.post1
 filelock==3.12.2
